@@ -2,8 +2,16 @@ from fastapi import FastAPI, Form
 from twilio.twiml.messaging_response import MessagingResponse
 import uvicorn
 import requests
+import unicodedata
 
 app = FastAPI()
+
+def normalizar_texto(texto: str) -> str:
+    """
+    Remove acentos e transforma o texto em minúsculas.
+    """
+    texto = unicodedata.normalize('NFKD', texto).encode('ASCII', 'ignore').decode('ASCII')
+    return texto.lower().strip()
 
 def get_btc_price():
     try:
@@ -22,28 +30,21 @@ async def root():
 
 @app.post("/whatsapp")
 async def whatsapp_webhook(Body: str = Form(...)):
-    print(f"📩 Mensagem recebida do Twilio: {Body}")  # LOG DE DEBUG
-    msg = Body.strip().lower()
-
+    msg = normalizar_texto(Body)
+    print(f"📩 Mensagem recebida (normalizada): {msg}")
     response = MessagingResponse()
     message = response.message()
 
-    if msg == "preço btc":
+    if msg == "preco btc":
         price_usd, price_brl = get_btc_price()
         if price_brl:
-            print(f"✅ Resposta enviada: USD: {price_usd} | BRL: {price_brl}")  # LOG DE DEBUG
             message.body(f"📈 O preço **atual** do BTC é:\n💵 USD: {price_usd}\n🇧🇷 BRL: {price_brl}")
         else:
             message.body("⚠️ Erro ao obter o preço do BTC.")
     elif msg == "dca carteira":
-        print("✅ Resposta enviada: DCA recomendada.")  # LOG DE DEBUG
         message.body("💰 Sugiro comprar 10% em BTC com base nas análises atuais.")
     else:
-        print(f"⚠️ Comando não reconhecido: {msg}")  # LOG DE DEBUG
         message.body("🤖 Comando não reconhecido. Tente: 'preço BTC' ou 'DCA carteira'.")
 
     return str(response)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=10000)
         
