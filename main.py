@@ -22,20 +22,28 @@ async def root():
 
 @app.post("/whatsapp")
 async def whatsapp_webhook(Body: str = Form(...)):
+    print(f"📩 Mensagem recebida do Twilio: {Body}")  # LOG DE DEBUG
     msg = Body.strip().lower()
-    print(f"📩 Mensagem recebida: {msg}")
+
     response = MessagingResponse()
     message = response.message()
 
     if msg == "preço btc":
         price_usd, price_brl = get_btc_price()
         if price_brl:
+            print(f"✅ Resposta enviada: USD: {price_usd} | BRL: {price_brl}")  # LOG DE DEBUG
             message.body(f"📈 O preço **atual** do BTC é:\n💵 USD: {price_usd}\n🇧🇷 BRL: {price_brl}")
         else:
             message.body("⚠️ Erro ao obter o preço do BTC.")
     elif msg == "dca carteira":
+        print("✅ Resposta enviada: DCA recomendada.")  # LOG DE DEBUG
         message.body("💰 Sugiro comprar 10% em BTC com base nas análises atuais.")
     else:
+        print(f"⚠️ Comando não reconhecido: {msg}")  # LOG DE DEBUG
         message.body("🤖 Comando não reconhecido. Tente: 'preço BTC' ou 'DCA carteira'.")
 
     return str(response)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=10000)
+        
